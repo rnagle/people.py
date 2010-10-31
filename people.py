@@ -123,16 +123,20 @@ class NameParser():
                       'VI{1,3}',            # 6th, 7th, 8th
                       'V',                  # 5th
                       'IX',                 # 9th
-                      'I{1,3}\.?',             # 1st, 2nd, 3rd
+                      'I{1,3}\.?',          # 1st, 2nd, 3rd
                       'M\.?D\.?',           # M.D.
-                      'D.?M\.?D\.?']         # M.D.
+                      'D.?M\.?D\.?']        # M.D.
 
     def parse(self, name):
         self.seen += 1
+        out = {}
         name = self.clean(name)
+        for suffix in self.suffixes:
+            name = re.sub(r'\,\s(%s)$' % suffix, '', name)
         return name
         
     def clean(self, s):
+        "Remove leading/trailing spaces and illegal characters from 'name'"
         # remove leading and trailing spaces
         s = s.strip(' ')
         # remove illegal characters
@@ -142,6 +146,7 @@ class NameParser():
         return s
         
     def get_title(self, name):
+        "Get title for the given 'name'"
         for title in self.titles:
             title = re.match(r'%s' % title, name)
             if title:
@@ -149,6 +154,7 @@ class NameParser():
                 return title.strip()
         
     def get_suffix(self, name):
+        "Get ending/suffix for given 'name'"
         for suffix in self.suffixes:
             suffix = re.match(r'%s' % suffix, name)
             if suffix:
@@ -156,6 +162,7 @@ class NameParser():
                 return suffix.strip()
         
     def get_name_parts(self, name, no_last_name=None):
+        "Break 'name' down into its component parts - First, Middle, Last"
         nc = self.nc
         
         if no_last_name:
@@ -175,6 +182,7 @@ class NameParser():
                     r'^([%s]+) ([A-Za-z]\.[A-Za-z]\.) (%s)$' % (nc, last_name_p),       # 8 -- RYAN M.M. NAGLE
                     r'^([%s]+) (%s)$' % (nc, last_name_p),                              # 9 -- RYAN NAGLE
                     r'^([%s]+) ([%s]+) (%s)$' % (nc, nc, last_name_p)]                  # 10 -- RYAN MICHAEL NAGLE
+        
         for pattern in patterns:
             match = re.match(pattern, name, re.IGNORECASE)
             if match:
@@ -245,6 +253,6 @@ class NameParser():
         
         return [parsed, parse_type, first, middle, last]
 
-    def proper(self):
+    def proper(self, name):
         return 'proper'
         
