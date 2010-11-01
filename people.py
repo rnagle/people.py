@@ -2,7 +2,8 @@ import re
 
 class NameParser():
     """Class to parse names into their components like first, middle, last, etc. Loosely 
-    based on the Lingua-EN-NameParser Perl module)."""
+    based on the Lingua-EN-NameParser Perl module). Inspired by Matt Ericson's people.rb
+    http://github.com/mericson/people"""
 
     def __init__(self):
         self.nc = "A-Za-z0-9\\-\\'"
@@ -128,19 +129,24 @@ class NameParser():
 
     def parse(self, name):
         self.seen += 1
+        
         out = {}
         out['original'] = name
-        name = self.clean(name)
-        out['title'] = self.get_title(name)
+        
+        cleaned = self.clean(name)
+        out['title'] = self.get_title(cleaned)
+        out['suffix'] = self.get_suffix(cleaned)
+        
         for title in self.titles:
-            name = re.sub(r'%s' % title, '', name)
-        out['suffix'] = self.get_suffix(name)
+            name = self.clean(re.sub(r'(%s)' % title, '', name))
         for suffix in self.suffixes:
-            name = re.sub(r'%s' % suffix, '', name)
+            name = self.clean(re.sub(r'(\,?\s?)(%s)$' % suffix, '', name))
+            
         parts = self.get_name_parts(name)
         out['parsed'] = parts[0]
         if out['parsed']:
             self.parsed += 1
+            
         out['parse_type'] = parts[1]
         out['first'] = parts[2]
         out['middle'] = parts[3]
@@ -153,7 +159,7 @@ class NameParser():
         # remove leading and trailing spaces
         s = s.strip(' ')
         # remove illegal characters
-        s = re.sub(r'[^A-Za-z0-9\-\'\.&\/ \,]', ' ', s)
+        s = re.sub(r'[0-9\-\'\.&\/ \,]', ' ', s)
         # remove repeating spaces
         s = re.sub(r'\s+', ' ', s)
         return s
@@ -161,7 +167,7 @@ class NameParser():
     def get_title(self, name):
         "Get title for the given 'name'"
         for title in self.titles:
-            title = re.match(r'%s' % title, name)
+            title = re.match(r'(%s)' % title, name)
             if title:
                 title = title.group(0)
                 return title.strip()
@@ -169,20 +175,25 @@ class NameParser():
     def get_suffix(self, name):
         "Get ending/suffix for given 'name'"
         for suffix in self.suffixes:
-            suffix = re.match(r'%s' % suffix, name)
+            suffix = re.search(r'(%s)$' % suffix, name)
             if suffix:
                 suffix = suffix.group(0)
                 return suffix.strip()
         
     def get_name_parts(self, name, no_last_name=None):
         "Break 'name' down into its component parts - First, Middle, Last"
+        parsed = False
+        patt_num = 0
+        
         nc = self.nc
+        
         if no_last_name:
             last_name_p = ''
             mult_name_p = ''
         else:
             last_name_p = self.last_name_p
             mult_name_p = self.mult_name_p
+        
         patterns = [r'^([A-Za-z])\.? (%s)$' % last_name_p,                              # 1 -- R NAGLE
                     r'^([A-Za-z])\.? ([A-Za-z])\.? (%s)$' % last_name_p,                # 2 -- R M NAGLE
                     r'^([A-Za-z])\.([A-Za-z])\. (%s)$' % last_name_p,                   # 3 -- R.M. NAGLE
@@ -193,70 +204,73 @@ class NameParser():
                     r'^([%s]+) ([A-Za-z]\.[A-Za-z]\.) (%s)$' % (nc, last_name_p),       # 8 -- RYAN M.M. NAGLE
                     r'^([%s]+) (%s)$' % (nc, last_name_p),                              # 9 -- RYAN NAGLE
                     r'^([%s]+) ([%s]+) (%s)$' % (nc, nc, last_name_p)]                  # 10 -- RYAN MICHAEL NAGLE
+                    
         for pattern in patterns:
-            match = re.match(pattern, name, re.IGNORECASE)
+            match = re.search(pattern, name, re.IGNORECASE)
             if match:
                 patt_num = patterns.index(pattern)
-                if patt_num is 0:
-                    first  = match.group(1)
-                    middle = ''
-                    last   = match.group(2)
-                    parsed = True
-                    parse_type = 1
-                elif patt_num is 1:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 2
-                elif patt_num is 2:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 3
-                elif patt_num is 3:
-                    first  = match.group(1)
-                    middle = match.group(2) + ' ' + match.group(3)
-                    last   = match.group(4)
-                    parsed = True
-                    parse_type = 4
-                elif patt_num is 4:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 5
-                elif patt_num is 5:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 6
-                elif patt_num is 6:
-                    first  = match.group(1)
-                    middle = match.group(2) + ' ' + match.group(3)
-                    last   = match.group(4)
-                    parsed = True
-                    parse_type = 7
-                elif patt_num is 7:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 8
-                elif patt_num is 8:
-                    first  = match.group(1)
-                    middle = ''
-                    last   = match.group(2)
-                    parsed = True
-                    parse_type = 9
-                elif patt_num is 9:
-                    first  = match.group(1)
-                    middle = match.group(2)
-                    last   = match.group(3)
-                    parsed = True
-                    parse_type = 10
+                break
+                
+        if patt_num is 0:
+            first  = match.group(1)
+            middle = ''
+            last   = match.group(2)
+            parsed = True
+            parse_type = 1
+        elif patt_num is 1:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 2
+        elif patt_num is 2:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 3
+        elif patt_num is 3:
+            first  = match.group(1)
+            middle = match.group(2) + ' ' + match.group(3)
+            last   = match.group(4)
+            parsed = True
+            parse_type = 4
+        elif patt_num is 4:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 5
+        elif patt_num is 5:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 6
+        elif patt_num is 6:
+            first  = match.group(1)
+            middle = match.group(2) + ' ' + match.group(3)
+            last   = match.group(4)
+            parsed = True
+            parse_type = 7
+        elif patt_num is 7:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 8
+        elif patt_num is 8:
+            first  = match.group(1)
+            middle = ''
+            last   = match.group(2)
+            parsed = True
+            parse_type = 9
+        elif patt_num is 9:
+            first  = match.group(1)
+            middle = match.group(2)
+            last   = match.group(3)
+            parsed = True
+            parse_type = 10
         return [parsed, parse_type, first, middle, last]
 
     def proper(self, name):
