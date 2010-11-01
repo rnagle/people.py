@@ -156,12 +156,12 @@ class NameParser():
         
     def clean(self, s):
         "Remove leading/trailing spaces and illegal characters from 'name'"
-        # remove leading and trailing spaces
-        s = s.strip(' ')
         # remove illegal characters
-        s = re.sub(r'[0-9\-\'\.&\/ \,]', ' ', s)
+        s = re.sub(r'[0-9\-\'\.\&\/\,]', '', s)
         # remove repeating spaces
         s = re.sub(r'\s+', ' ', s)
+        # remove leading and trailing spaces
+        s = s.strip(' ')
         return s
         
     def get_title(self, name):
