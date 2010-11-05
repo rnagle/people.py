@@ -274,5 +274,9 @@ class NameParser():
         return [parsed, parse_type, first, middle, last]
 
     def proper(self, name):
-        return 'proper'
+        fixed = name.lower()
+        
+        if re.search(r'\bMac[a-z]{2,}[^a|c|i|o|z|j]\b', fixed, re.IGNORECASE):
+            print 'matched'
+            
         
