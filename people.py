@@ -274,9 +274,15 @@ class NameParser():
         return [parsed, parse_type, first, middle, last]
 
     def proper(self, name):
+        # lowercase everything
         fixed = name.lower()
-        
-        if re.search(r'\bMac[a-z]{2,}[^a|c|i|o|z|j]\b', fixed, re.IGNORECASE):
-            print 'matched'
-            
+        # uppercase first letter of each word by checking for word boundaries
+        fixed = ' '.join([word.capitalize() for word in fixed.split(' ')])
+        if re.search(r'Mac[a-z]{2,}[^a|c|i|o|z|j]', fixed, re.IGNORECASE):
+            fixed = re.search(r'([A-Za-z\s]+)(Mac)([a-z]+)', fixed, re.IGNORECASE)
+            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize() + fixed.group(3).capitalize()
+        elif re.search(r'Mc', fixed, re.IGNORECASE):    
+            fixed = re.search(r'([A-Za-z\s]+)(Mc)([a-z]+)', fixed, re.IGNORECASE)
+            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize() + fixed.group(3).capitalize()
+        return fixed
         
