@@ -12,9 +12,7 @@ class NameParser():
         self.seen = 0
         self.parsed = 0
         self.opts =   {'strip_mr':True, 
-                      'strip_mrs':False, 
-                      'case_mode':'proper', 
-                      'couples':False}
+                      'strip_mrs':True,}
 
         self.titles = ['Mr\.? and Mrs\.? ',
                       'Mrs\.? ',
@@ -128,6 +126,7 @@ class NameParser():
                       'D.?M\.?D\.?']        # M.D.
 
     def parse(self, name):
+        "Return dict with name info"
         self.seen += 1
         
         out = {}
@@ -137,10 +136,10 @@ class NameParser():
         out['title'] = self.get_title(cleaned)
         out['suffix'] = self.get_suffix(cleaned)
         
-        for title in self.titles:
-            name = self.clean(re.sub(r'(%s)' % title, '', name))
-        for suffix in self.suffixes:
-            name = self.clean(re.sub(r'(\,?\s?)(%s)$' % suffix, '', name))
+        name = [self.clean(re.sub(r'(%s)' % title, '', name)) 
+                    for title in self.titles][0]
+        name = [self.clean(re.sub(r'(\,?\s?)(%s)$' % suffix, '', name)) 
+                    for suffix in self.suffixes][0]
             
         parts = self.get_name_parts(name)
         out['parsed'] = parts[0]
@@ -148,9 +147,9 @@ class NameParser():
             self.parsed += 1
             
         out['parse_type'] = parts[1]
-        out['first'] = parts[2]
-        out['middle'] = parts[3]
-        out['last'] = parts[4]
+        out['first'] = self.proper(parts[2])
+        out['middle'] = self.proper(parts[3])
+        out['last'] = self.proper(parts[4])
         out['clean'] = name
         return out
         
@@ -205,84 +204,106 @@ class NameParser():
                     r'^([%s]+) (%s)$' % (nc, last_name_p),                              # 9 -- RYAN NAGLE
                     r'^([%s]+) ([%s]+) (%s)$' % (nc, nc, last_name_p)]                  # 10 -- RYAN MICHAEL NAGLE
                     
-        for pattern in patterns:
-            match = re.search(pattern, name, re.IGNORECASE)
-            if match:
-                patt_num = patterns.index(pattern)
-                break
-                
-        if patt_num is 0:
-            first  = match.group(1)
-            middle = ''
-            last   = match.group(2)
-            parsed = True
-            parse_type = 1
-        elif patt_num is 1:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 2
-        elif patt_num is 2:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 3
-        elif patt_num is 3:
-            first  = match.group(1)
-            middle = match.group(2) + ' ' + match.group(3)
-            last   = match.group(4)
-            parsed = True
-            parse_type = 4
-        elif patt_num is 4:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 5
-        elif patt_num is 5:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 6
-        elif patt_num is 6:
-            first  = match.group(1)
-            middle = match.group(2) + ' ' + match.group(3)
-            last   = match.group(4)
-            parsed = True
-            parse_type = 7
-        elif patt_num is 7:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 8
-        elif patt_num is 8:
-            first  = match.group(1)
-            middle = ''
-            last   = match.group(2)
-            parsed = True
-            parse_type = 9
-        elif patt_num is 9:
-            first  = match.group(1)
-            middle = match.group(2)
-            last   = match.group(3)
-            parsed = True
-            parse_type = 10
+        patt_num = [patterns.index(pattern) for pattern in patterns 
+                    if re.search(pattern, name, re.IGNORECASE) is not None][0]
+        match = re.search(patterns[patt_num], name, re.IGNORECASE)
+
+        if match:
+            if patt_num is 0:
+                first  = match.group(1)
+                middle = ''
+                last   = match.group(2)
+                parsed = True
+                parse_type = 1
+            elif patt_num is 1:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 2
+            elif patt_num is 2:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 3
+            elif patt_num is 3:
+                first  = match.group(1)
+                middle = match.group(2) + ' ' + match.group(3)
+                last   = match.group(4)
+                parsed = True
+                parse_type = 4
+            elif patt_num is 4:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 5
+            elif patt_num is 5:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 6
+            elif patt_num is 6:
+                first  = match.group(1)
+                middle = match.group(2) + ' ' + match.group(3)
+                last   = match.group(4)
+                parsed = True
+                parse_type = 7
+            elif patt_num is 7:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 8
+            elif patt_num is 8:
+                first  = match.group(1)
+                middle = ''
+                last   = match.group(2)
+                parsed = True
+                parse_type = 9
+            elif patt_num is 9:
+                first  = match.group(1)
+                middle = match.group(2)
+                last   = match.group(3)
+                parsed = True
+                parse_type = 10
         return [parsed, parse_type, first, middle, last]
 
     def proper(self, name):
-        # lowercase everything
-        fixed = name.lower()
-        # uppercase first letter of each word by checking for word boundaries
-        fixed = ' '.join([word.capitalize() for word in fixed.split(' ')])
+        "Make sure name is properly capitalized"
+        fixed = name
         if re.search(r'Mac[a-z]{2,}[^a|c|i|o|z|j]', fixed, re.IGNORECASE):
-            fixed = re.search(r'([A-Za-z\s]+)(Mac)([a-z]+)', fixed, re.IGNORECASE)
-            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize() + fixed.group(3).capitalize()
+            fixed = re.search(r'(Mac)([a-z]+)', fixed, re.IGNORECASE)
+            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize()
+            
+            # Now correct for "Mac" exceptions
+            fixed = re.sub(r'MacKert', 'Mackert', fixed)
+            fixed = re.sub(r'MacHin', 'Machin', fixed)
+            fixed = re.sub(r'MacHlin', 'Machlin', fixed)
+            fixed = re.sub(r'MacHar', 'Machar', fixed)
+            fixed = re.sub(r'MacKle', 'Mackle', fixed)
+            fixed = re.sub(r'MacKlin', 'Macklin', fixed)
+            fixed = re.sub(r'MacKie', 'Mackie', fixed)
+
+            # Portuguese
+            fixed = re.sub(r'MacHado', 'Machado', fixed)
+
+            # Lithuanian
+            fixed = re.sub(r'MacEvicius', 'Macevicius', fixed)
+            fixed = re.sub(r'MacIulis', 'Maciulis', fixed)
+            fixed = re.sub(r'MacIas', 'Macias', fixed)
+            
         elif re.search(r'Mc', fixed, re.IGNORECASE):    
-            fixed = re.search(r'([A-Za-z\s]+)(Mc)([a-z]+)', fixed, re.IGNORECASE)
-            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize() + fixed.group(3).capitalize()
+            fixed = re.search(r'(Mc)([a-z]+)', fixed, re.IGNORECASE)
+            fixed = fixed.group(1).capitalize() + fixed.group(2).capitalize()
+        
+        else:
+            fixed = fixed.capitalize()
+            
+        # Other exceptions
+        fixed = re.sub(r'Macmurdo', 'MacMurdo', fixed)
+        
         return fixed
         
